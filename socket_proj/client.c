@@ -29,22 +29,31 @@ int main(int argc, char **argv){
 
 void parse_option(char **argv){
     argv++;
+    int option_count = 0;
     while(*argv != NULL){
         if(!strcmp(*argv, "-h")){
+            if(!++argv) help();
+            if(strlen(*argv) > 15) help();
+            strcpy(op.ip, *argv);
         }
         else if(!strcmp(*argv, "-p")){
+            if(!++argv) help();
+            op.port = atoi(*argv);
         }
         else if(!strcmp(*argv, "-m")){
+            if(!++argv) help();
+            op.protocol = atoi(*argv);
         }
         else{
         }
-        printf("%s\n", *argv);
         argv++;
+        option_count++;
     }
+    if(option_count != 3) help();
 }
 
 void help(){
     // print the help message and exit
-    printf("aaaa\n");
+    printf("help-function\n");
     exit(-1);
 }
