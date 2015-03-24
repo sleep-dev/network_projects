@@ -17,6 +17,7 @@ struct option op;
 
 void parse_option(char **argv);
 void help();
+void phase1(int fd);
 
 int main(int argc, char **argv){
     parse_option(argv);
@@ -38,6 +39,8 @@ int main(int argc, char **argv){
         printf("Connection Fail\n");
         exit(-1);
     }
+
+    phase1(client_fd);
 }
 
 void parse_option(char **argv){
@@ -72,3 +75,18 @@ void help(){
     printf("help-function\n");
     exit(-1);
 }
+
+void phase1(int fd){
+    unsigned char op;
+    unsigned char proto;
+    unsigned short checksum;
+    unsigned int trans_id;
+
+    recv(fd, &op, 1, 0);
+    recv(fd, &proto, 1, 0);
+    recv(fd, &checksum, 2, 0);
+    recv(fd, &trans_id, 4, 0);
+
+
+}
+
