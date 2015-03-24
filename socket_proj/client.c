@@ -13,7 +13,7 @@ struct option{
     int protocol;
 };
 
-struct option op;
+struct option opt;
 
 void parse_option(char **argv);
 void help();
@@ -32,8 +32,8 @@ int main(int argc, char **argv){
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(op.port);
-    server_addr.sin_addr.s_addr = inet_addr(op.ip);
+    server_addr.sin_port = htons(opt.port);
+    server_addr.sin_addr.s_addr = inet_addr(opt.ip);
 
     if(-1 == (connect(client_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)))){
         printf("Connection Fail\n");
@@ -51,17 +51,17 @@ void parse_option(char **argv){
             if(!++argv) help();
             struct sockaddr_in sa;
             if(!inet_pton(AF_INET, *argv, &(sa.sin_addr))) help();
-            inet_ntop(AF_INET, &(sa.sin_addr), op.ip, INET_ADDRSTRLEN);
+            inet_ntop(AF_INET, &(sa.sin_addr), opt.ip, INET_ADDRSTRLEN);
         }
         else if(!strcmp(*argv, "-p")){
             if(!++argv) help();
-            op.port = atoi(*argv);
-            if(!op.port) help();
+            opt.port = atoi(*argv);
+            if(!opt.port) help();
         }
         else if(!strcmp(*argv, "-m")){
             if(!++argv) help();
-            op.protocol = atoi(*argv);
-            if(!op.protocol) help();
+            opt.protocol = atoi(*argv);
+            if(!opt.protocol) help();
         }
         else help();
         argv++;
@@ -101,5 +101,18 @@ void phase1(int fd){
         printf("Checksum is different\n");
         exit(-1);
     }
+
+    op = 1;
+    proto = opt.protocol;
+    
+    calc_checksum = proto << 8 + op;
+    calc_checksum += (trans_id >> 16) + (trans_id & 0xffff);
+    calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
+    calc_checksum ^= 0xffff;
+
+    send(fd, &op, 1, 0);
+    send(fd, &proto, 1, 0);
+    send(fd, &calc_checksum, 2, 0);
+    send(fd, &trans_id, 4, 0);
 }
 
