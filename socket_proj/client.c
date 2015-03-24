@@ -17,7 +17,8 @@ struct option opt;
 
 void parse_option(char **argv);
 void help();
-void phase1(int fd);
+int phase1(int fd);
+void phase2(int fd);
 
 int main(int argc, char **argv){
     parse_option(argv);
@@ -76,7 +77,8 @@ void help(){
     exit(-1);
 }
 
-void phase1(int fd){
+int phase1(int fd){
+    //recv part
     unsigned char op;
     unsigned char proto;
     unsigned short checksum;
@@ -86,6 +88,7 @@ void phase1(int fd){
     recv(fd, &proto, 1, 0);
     recv(fd, &checksum, 2, 0);
     recv(fd, &trans_id, 4, 0);
+    printf("%d\n", trans_id);
 
     if(op != 0 || proto != 0){
         printf("Server Error!\n");
@@ -102,6 +105,8 @@ void phase1(int fd){
         exit(-1);
     }
 
+    //response part
+
     op = 1;
     proto = opt.protocol;
     
@@ -114,5 +119,9 @@ void phase1(int fd){
     send(fd, &proto, 1, 0);
     send(fd, &calc_checksum, 2, 0);
     send(fd, &trans_id, 4, 0);
+    
+    return trans_id;
 }
 
+void phase2(int fd){
+}
