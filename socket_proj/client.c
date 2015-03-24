@@ -1,6 +1,7 @@
 #include<string.h>
 #include<stdio.h>
 #include<stdlib.h>
+#include<unistd.h>
 
 #include<sys/types.h>
 #include<sys/socket.h>
@@ -33,16 +34,19 @@ void parse_option(char **argv){
     while(*argv != NULL){
         if(!strcmp(*argv, "-h")){
             if(!++argv) help();
-            if(strlen(*argv) > 15) help();
-            strcpy(op.ip, *argv);
+            strncpy(op.ip, *argv, 15);
+
+            if(gethostname(op.ip, strlen(op.ip))) help();
         }
         else if(!strcmp(*argv, "-p")){
             if(!++argv) help();
             op.port = atoi(*argv);
+            if(!op.port) help();
         }
         else if(!strcmp(*argv, "-m")){
             if(!++argv) help();
             op.protocol = atoi(*argv);
+            if(!op.protocol) help();
         }
         else{
         }
