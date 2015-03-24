@@ -3,11 +3,12 @@
 #include<stdlib.h>
 #include<unistd.h>
 
+#include<arpa/inet.h>
 #include<sys/types.h>
 #include<sys/socket.h>
 
 struct option{
-    char ip[16];
+    char ip[INET_ADDRSTRLEN];
     int port;
     int protocol;
 };
@@ -20,10 +21,21 @@ void help();
 int main(int argc, char **argv){
     parse_option(argv);
     int client_fd;
+    struct sockaddr_in server_addr;
 
     client_fd = socket(PF_INET, SOCK_STREAM, 0);
     if( client_fd == -1 ){
         printf("Fail on make socket\n");
+        exit(-1);
+    }
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(op.port);
+    server_addr.sin_addr.s_addr = inet_addr(op.ip);
+
+    if(-1 == (connect(client_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)))){
+        printf("Connection Fail\n");
         exit(-1);
     }
 }
@@ -34,9 +46,9 @@ void parse_option(char **argv){
     while(*argv != NULL){
         if(!strcmp(*argv, "-h")){
             if(!++argv) help();
-            strncpy(op.ip, *argv, 15);
-
-            if(gethostname(op.ip, strlen(op.ip))) help();
+            strncpy(op.ip, *argv, INET_ADDRSTRLEN);
+            struct sockaddr_in addr_inet;
+            if(!inet_aton(op.ip, &addr_inet.sin_addr)) help();
         }
         else if(!strcmp(*argv, "-p")){
             if(!++argv) help();
