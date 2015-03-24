@@ -46,9 +46,9 @@ void parse_option(char **argv){
     while(*argv != NULL){
         if(!strcmp(*argv, "-h")){
             if(!++argv) help();
-            strncpy(op.ip, *argv, INET_ADDRSTRLEN);
-            struct sockaddr_in addr_inet;
-            if(!inet_aton(op.ip, &addr_inet.sin_addr)) help();
+            struct sockaddr_in sa;
+            if(!inet_pton(AF_INET, *argv, &(sa.sin_addr))) help();
+            inet_ntop(AF_INET, &(sa.sin_addr), op.ip, INET_ADDRSTRLEN);
         }
         else if(!strcmp(*argv, "-p")){
             if(!++argv) help();
