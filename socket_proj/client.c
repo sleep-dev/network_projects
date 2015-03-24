@@ -10,7 +10,12 @@ struct option{
     int protocol;
 };
 
+struct option op;
+
+void parse_option(char **argv);
+
 int main(int argc, char **argv){
+    parse_option(argv);
     int client_fd;
 
     client_fd = socket(PF_INET, SOCK_STREAM, 0);
@@ -20,5 +25,10 @@ int main(int argc, char **argv){
     }
 }
 
-struct option parse_option(char **argv){
+void parse_option(char **argv){
+    argv++;
+    while(*argv != NULL){
+        printf("%s\n", *argv);
+        argv++;
+    }
 }
