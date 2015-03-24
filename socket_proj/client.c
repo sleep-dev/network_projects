@@ -87,6 +87,19 @@ void phase1(int fd){
     recv(fd, &checksum, 2, 0);
     recv(fd, &trans_id, 4, 0);
 
+    if(op != 0 || proto != 0){
+        printf("Server Error!\n");
+        exit(-1);
+    }
 
+    unsigned int calc_checksum = 0;
+    calc_checksum = (trans_id >> 16) + (trans_id & 0xffff);
+    calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
+    calc_checksum ^= 0xffff;
+    
+    if(calc_checksum != checksum){
+        printf("Checksum is different\n");
+        exit(-1);
+    }
 }
 
