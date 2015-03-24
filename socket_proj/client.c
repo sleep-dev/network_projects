@@ -60,8 +60,7 @@ void parse_option(char **argv){
             op.protocol = atoi(*argv);
             if(!op.protocol) help();
         }
-        else{
-        }
+        else help();
         argv++;
         option_count++;
     }
