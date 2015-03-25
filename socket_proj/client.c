@@ -42,7 +42,7 @@ int main(int argc, char **argv){
     }
 
     phase1(client_fd);
-    phase2(client_fd);
+    while(1)    phase2(client_fd);
 }
 
 void parse_option(char **argv){
@@ -89,7 +89,6 @@ int phase1(int fd){
     recv(fd, &proto, 1, 0);
     recv(fd, &checksum, 2, 0);
     recv(fd, &trans_id, 4, 0);
-    printf("%d\n", trans_id);
 
     if(op != 0 || proto != 0){
         printf("Server Error!\n");
@@ -117,34 +116,46 @@ int phase1(int fd){
     calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
     calc_checksum ^= 0xffff;
 
+    checksum = calc_checksum;
+
     send(fd, &op, 1, 0);
     send(fd, &proto, 1, 0);
-    send(fd, &calc_checksum, 2, 0);
+    send(fd, &checksum, 2, 0);
     send(fd, &trans_id, 4, 0);
-
     
-    return trans_id;
+    return ntohl(trans_id);
 }
 
 void phase2(int fd){
+    char buf[1040];
+    int len;
+    printf("Input(max 1024 // EOF - ctrl-D) : ");
+    fflush(stdout);
+
+    len = read(1, buf, 1024);
+    printf("\n");
+    fflush(stdout);
+
     if(opt.protocol == 1){
-        char test[10];
-        send(fd, "aaaa\\0", 6, 0);
-        recv(fd, test, 10, 0);
-        printf("%s\n", test);
-        send(fd, "aabbaa\\0", 8, 0);
-        recv(fd, test, 10, 0);
-        printf("%s\n", test);
+        //protocol 1 send part
+        buf[len] = '\\';
+        buf[len+1] = '0';
+        send(fd, buf, len+2, 0);
+
+        //protocol 1 recv part
+
+        len = recv(fd, buf, 1040, 0);
+        buf[len] = 0;
     }
     else{
         char test[10];
         int length = 10;
-        char *tlen = "\x00\x00\x00\x0a";
-        send(fd, tlen, 4, 0);
+        length = htonl(length);
+        send(fd, &length, 4, 0);
         send(fd, "aaaabbbbaa", 10, 0);
         recv(fd, &length, 4, 0);
+        length = ntohl(length);
         recv(fd, test, length, 0);
-        printf("%x\n", length);
-        printf("test : %s\n", test);
     }
+    printf("server data : %s\n", buf); 
 }
