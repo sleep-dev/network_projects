@@ -42,6 +42,7 @@ int main(int argc, char **argv){
     }
 
     phase1(client_fd);
+    phase2(client_fd);
 }
 
 void parse_option(char **argv){
@@ -99,6 +100,7 @@ int phase1(int fd){
     calc_checksum = (trans_id >> 16) + (trans_id & 0xffff);
     calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
     calc_checksum ^= 0xffff;
+    printf("%x\n", calc_checksum);
     
     if(calc_checksum != checksum){
         printf("Checksum is different\n");
@@ -110,7 +112,7 @@ int phase1(int fd){
     op = 1;
     proto = opt.protocol;
     
-    calc_checksum = proto << 8 + op;
+    calc_checksum = (proto << 8) + op;
     calc_checksum += (trans_id >> 16) + (trans_id & 0xffff);
     calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
     calc_checksum ^= 0xffff;
@@ -119,9 +121,30 @@ int phase1(int fd){
     send(fd, &proto, 1, 0);
     send(fd, &calc_checksum, 2, 0);
     send(fd, &trans_id, 4, 0);
+
     
     return trans_id;
 }
 
 void phase2(int fd){
+    if(opt.protocol == 1){
+        char test[10];
+        send(fd, "aaaa\\0", 6, 0);
+        recv(fd, test, 10, 0);
+        printf("%s\n", test);
+        send(fd, "aabbaa\\0", 8, 0);
+        recv(fd, test, 10, 0);
+        printf("%s\n", test);
+    }
+    else{
+        char test[10];
+        int length = 10;
+        char *tlen = "\x00\x00\x00\x0a";
+        send(fd, tlen, 4, 0);
+        send(fd, "aaaabbbbaa", 10, 0);
+        recv(fd, &length, 4, 0);
+        recv(fd, test, length, 0);
+        printf("%x\n", length);
+        printf("test : %s\n", test);
+    }
 }
