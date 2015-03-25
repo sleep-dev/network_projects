@@ -145,17 +145,19 @@ void phase2(int fd){
         //protocol 1 recv part
 
         len = recv(fd, buf, 1040, 0);
-        buf[len] = 0;
+        buf[len-2] = 0;
     }
     else{
-        char test[10];
-        int length = 10;
-        length = htonl(length);
-        send(fd, &length, 4, 0);
-        send(fd, "aaaabbbbaa", 10, 0);
-        recv(fd, &length, 4, 0);
-        length = ntohl(length);
-        recv(fd, test, length, 0);
+        //protocol 2 send part
+        int send_len = htonl(len);
+        send(fd, &send_len, 4, 0);
+        send(fd, buf, len, 0); 
+
+        //protocol2 recv part
+        recv(fd, &len, 4, 0);
+        len = ntohl(len);
+        len = recv(fd, buf, len, 0);
+        buf[len] = 0;
     }
     printf("server data : %s\n", buf); 
 }
