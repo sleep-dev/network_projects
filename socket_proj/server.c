@@ -14,5 +14,5 @@ int main(int argc, char **argv){
     if(sockfd < 0){
         perror("ERROR opening socket");
         exit(-1);
-
+    }
 }
