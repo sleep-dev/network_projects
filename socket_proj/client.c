@@ -26,8 +26,8 @@ int main(int argc, char **argv){
     struct sockaddr_in server_addr;
 
     client_fd = socket(PF_INET, SOCK_STREAM, 0);
-    if( client_fd == -1 ){
-        printf("Fail on make socket\n");
+    if( client_fd < -1 ){
+        perror("ERROR opening socket");
         exit(-1);
     }
 
@@ -37,7 +37,7 @@ int main(int argc, char **argv){
     server_addr.sin_addr.s_addr = inet_addr(opt.ip);
 
     if(-1 == (connect(client_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)))){
-        printf("Connection Fail\n");
+        perror("ERROR Connection fail");
         exit(-1);
     }
 
