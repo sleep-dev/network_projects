@@ -7,6 +7,8 @@
 #include<sys/types.h>
 #include<sys/socket.h>
 
+void client_main(int client_fd);
+
 int main(int argc, char **argv){
     int server_fd;
     int portno;
@@ -30,5 +32,53 @@ int main(int argc, char **argv){
         perror("ERROR binding socket");
         exit(-1);
     }
+    if(listen(server_fd, 10) < 0){
+        perror("ERROR Listening socket");
+        exit(-1);
+    }
+
+    while(1){
+        int len = sizeof(client_addr);
+        int client_fd = accept(server_fd, (struct sockaddr *)&client_addr, &len);
+        int pid;
+
+        if((pid = fork()) == -1){
+            close(client_fd);
+            continue;
+        }
+        else if(pid > 0){
+            close(client_fd);
+            continue;
+        }
+        else if(pid == 0){
+            client_main(client_fd);
+            break;
+        }
+    }
+}
+
+void client_main(int client_fd){
 
 }
+
+int phase1(int fd){
+    unsigned char op = 0;
+    unsigned char proto = 0;
+    unsigned short checksum;
+    unsigned int trans_id = rand();
+
+    checksum = (trans_id >> 16) + (trans_id & 0xffff);
+    checksum = (checksum >> 16) + (checksum & 0xffff);
+    checksum ^= 0xffff;
+    checksum = htons(checksum);
+    trans_id = htonl(trans_id);
+
+    send(fd, &op, 1, 0);
+    send(fd, &proto, 1, 0);
+    send(fd, &checksum, 2, 0);
+    send(fd, &trans_id, 4, 0);
+
+    return trans_id;
+}
+        
+
