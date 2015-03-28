@@ -182,7 +182,7 @@ int phase2(int fd){
         recv_len = ntohl(recv_len);
         len = 0;
         while(len != recv_len)
-            len += recv(fd, data, recv_len - len, 0);
+            len += recv(fd, data+len, recv_len - len, 0);
     }
     //printf("server data : "); 
     write(1, data, len);
