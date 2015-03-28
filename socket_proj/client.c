@@ -96,8 +96,8 @@ int phase1(int fd){
     }
 
     checksum += (trans_id >> 16) + (trans_id & 0xffff);
-    if(~checksum){
-        perror("Checksum is different\n");
+    if(checksum ^ 0xffff){
+        printf("Checksum is different\n");
         exit(-1);
     }
 
@@ -140,6 +140,10 @@ void phase2(int fd){
         //protocol 1 recv part
 
         len = recv(fd, buf, 1040, 0);
+        if(buf[len-2] != '\\' || buf[len-1] != '0'){
+            printf("Server protocol Error\n");
+            exit(-1);
+        }
         buf[len-2] = 0;
     }
     else{

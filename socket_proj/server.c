@@ -8,6 +8,8 @@
 #include<sys/socket.h>
 
 void client_main(int client_fd);
+int phase1(int client_fd);
+void phase2(int client_fd, int mode);
 
 int main(int argc, char **argv){
     int server_fd;
@@ -52,20 +54,20 @@ int main(int argc, char **argv){
         }
         else if(pid == 0){
             client_main(client_fd);
+            close(client_fd);
             break;
         }
     }
 }
 
 void client_main(int client_fd){
-
+    printf("%d\n", phase1(client_fd));
 }
 
 int phase1(int fd){
-    unsigned char op = 0;
-    unsigned char proto = 0;
+    unsigned char op = 0, proto = 0;
     unsigned short checksum;
-    unsigned int trans_id = rand();
+    unsigned int calc_checksum, recv_id, trans_id = rand();
 
     checksum = (trans_id >> 16) + (trans_id & 0xffff);
     checksum = (checksum >> 16) + (checksum & 0xffff);
@@ -77,8 +79,21 @@ int phase1(int fd){
     send(fd, &proto, 1, 0);
     send(fd, &checksum, 2, 0);
     send(fd, &trans_id, 4, 0);
+    trans_id = ntohl(trans_id);
 
-    return trans_id;
+    recv(fd, &op, 1, 0);
+    recv(fd, &proto, 1, 0);
+    recv(fd, &checksum, 2, 0);
+    recv(fd, &recv_id, 4, 0);
+    recv_id = ntohl(recv_id);
+
+    checksum += (trans_id >> 16) + (trans_id & 0xffff);
+    checksum += (op << 8) + proto;
+
+    if(recv_id != trans_id || checksum^0xffff) return -1;
+
+    return proto;
 }
-        
 
+void phase2(int fd, int mode){
+}
