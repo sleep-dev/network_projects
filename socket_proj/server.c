@@ -7,9 +7,17 @@
 #include<sys/types.h>
 #include<sys/socket.h>
 
+#define DATASIZE 65536
+#define PROTO1 1
+#define PROTO2 2
+#define bool int
+#define true 1
+#define false 0
+
 void client_main(int client_fd);
 int phase1(int client_fd);
-void phase2(int client_fd, int mode);
+void protocol1(int client_fd);
+void protocol2(int client_fd);
 
 int main(int argc, char **argv){
     int server_fd;
@@ -23,7 +31,7 @@ int main(int argc, char **argv){
         exit(-1);
     }
 
-    portno = 12345;
+    portno = 10341;
 
     memset(&server_addr, 0, sizeof(server_addr));   
     server_addr.sin_family = AF_INET;
@@ -61,7 +69,17 @@ int main(int argc, char **argv){
 }
 
 void client_main(int client_fd){
-    printf("%d\n", phase1(client_fd));
+    int protocol = phase1(client_fd);
+    switch(protocol){
+        case PROTO1:
+            break;
+        case PROTO2:
+            protocol2(client_fd);
+            break;
+        default:
+            break;
+    }
+    printf("client end\n");
 }
 
 int phase1(int fd){
@@ -87,6 +105,7 @@ int phase1(int fd){
     recv(fd, &recv_id, 4, 0);
     recv_id = ntohl(recv_id);
 
+    checksum = ntohs(checksum);
     checksum += (trans_id >> 16) + (trans_id & 0xffff);
     checksum += (op << 8) + proto;
 
@@ -95,5 +114,45 @@ int phase1(int fd){
     return proto;
 }
 
-void phase2(int fd, int mode){
+
+void protocol2(int fd){
+    char *buf;
+    int read_idx, write_idx;
+    int len, recv_len, send_len;
+    int check;
+    char write_char;
+    bool first_check = true;
+
+    int total_len = 0;
+
+    while(1){
+        if(recv(fd, &recv_len, 4, 0) == -1) return;
+        recv_len = ntohl(recv_len);
+        buf = malloc(recv_len);
+
+        read_idx = 0; write_idx = 0; len = 0;
+
+        while(len != recv_len){
+            check = recv(fd, buf + len, recv_len - len, 0);
+            if(check == -1) return;
+            len += check;
+        }
+
+        for(; read_idx < recv_len; read_idx++){
+            if(write_char != buf[read_idx] || first_check){
+                write_char = buf[read_idx];
+                buf[write_idx++] = write_char;
+                first_check = false;
+            }
+        }
+
+        send_len = write_idx;
+        len = htonl(send_len);
+
+        send(fd, &len, 4, 0);
+        send(fd, buf, send_len, 0); 
+        free(buf);
+    }
 }
+    
+
