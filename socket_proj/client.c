@@ -95,26 +95,21 @@ int phase1(int fd){
         exit(-1);
     }
 
-    unsigned int calc_checksum = 0;
-    calc_checksum = (trans_id >> 16) + (trans_id & 0xffff);
-    calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
-    calc_checksum ^= 0xffff;
-    printf("%x\n", calc_checksum);
-    
-    if(calc_checksum != checksum){
-        printf("Checksum is different\n");
+    checksum += (trans_id >> 16) + (trans_id & 0xffff);
+    if(~checksum){
+        perror("Checksum is different\n");
         exit(-1);
     }
 
     //response part
-
     op = 1;
     proto = opt.protocol;
     
+    int calc_checksum;
     calc_checksum = (proto << 8) + op;
     calc_checksum += (trans_id >> 16) + (trans_id & 0xffff);
     calc_checksum = (calc_checksum >> 16) + (calc_checksum & 0xffff);
-    calc_checksum ^= 0xffff;
+    calc_checksum = ~calc_checksum;
 
     checksum = calc_checksum;
 
