@@ -108,6 +108,9 @@ int phase1(int fd){
     recv(fd, &proto, 1, 0);
     recv(fd, &checksum, 2, 0);
     recv(fd, &trans_id, 4, 0);
+    checksum = ntohs(checksum);
+    trans_id = ntohl(trans_id);
+
 
     if(op != 0 || proto != 0){
         printf("Server Error!\n");
@@ -115,7 +118,7 @@ int phase1(int fd){
     }
 
     checksum += (trans_id >> 16) + (trans_id & 0xffff);
-    if(checksum ^ 0xffff){
+    if(checksum !=  0xffff){
         printf("Checksum is different\n");
         exit(-1);
     }
@@ -132,6 +135,8 @@ int phase1(int fd){
 
     checksum = calc_checksum;
 
+    checksum = htons(checksum);
+    trans_id = htonl(trans_id);
     send(fd, &op, 1, 0);
     send(fd, &proto, 1, 0);
     send(fd, &checksum, 2, 0);
