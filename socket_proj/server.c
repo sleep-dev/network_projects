@@ -72,6 +72,7 @@ void client_main(int client_fd){
     int protocol = phase1(client_fd);
     switch(protocol){
         case PROTO1:
+            protocol1(client_fd);
             break;
         case PROTO2:
             protocol2(client_fd);
@@ -114,6 +115,49 @@ int phase1(int fd){
     return proto;
 }
 
+void protocol1(int fd){
+    char buf[DATASIZE];
+    char write_char;
+    int read_idx, write_idx;
+    int recv_len;
+
+    bool read_end, escape = false, first_check = true;
+    int read_sum = 0;
+    int write_sum = 0;
+    
+    while(1){
+        read_end = false;
+        while(!read_end){
+            read_idx = 0; write_idx = 0;
+            recv_len = recv(fd, buf, DATASIZE, 0);
+            if(!recv_len) return;
+
+            while(read_idx < recv_len && !read_end){
+                if (escape && buf[read_idx] == '0'){
+                    read_end = true;
+                    escape = false;
+                }
+                else if (escape && buf[read_idx] == '\\') escape = false;
+                else if (buf[read_idx] == '\\') escape = true;
+                
+                if(!escape && !read_end && (write_char != buf[read_idx] || first_check)){
+                    write_char = buf[read_idx];
+                    buf[write_idx++] = write_char;
+                    if(write_char == '\\') buf[write_idx++] = '\\';
+                    first_check = false;
+                }
+                read_idx++;
+            }
+            read_sum += recv_len;
+            write_sum += write_idx;
+
+            send(fd, buf, write_idx, 0);
+        }
+        send(fd, "\\0", 2, 0);
+    }
+                    
+}
+
 
 void protocol2(int fd){
     char *buf;
@@ -126,7 +170,7 @@ void protocol2(int fd){
     int total_len = 0;
 
     while(1){
-        if(recv(fd, &recv_len, 4, 0) == -1) return;
+        if(!recv(fd, &recv_len, 4, 0)) return;
         recv_len = ntohl(recv_len);
         buf = malloc(recv_len);
 
@@ -134,7 +178,7 @@ void protocol2(int fd){
 
         while(len != recv_len){
             check = recv(fd, buf + len, recv_len - len, 0);
-            if(check == -1) return;
+            if(!check) return;
             len += check;
         }
 
