@@ -9,6 +9,8 @@
 
 #define DATASIZE 65536
 #define bool int
+#define PROTO1 1
+#define PROTO2 2
 #define true 1
 #define false 0
 
@@ -23,7 +25,8 @@ struct option opt;
 void parse_option(char **argv);
 void help();
 int phase1(int fd);
-int phase2(int fd);
+void protocol1(int fd);
+void protocol2(int fd);
 
 int main(int argc, char **argv){
     parse_option(argv);
@@ -47,7 +50,17 @@ int main(int argc, char **argv){
     }
 
     phase1(client_fd);
-    while(phase2(client_fd));
+    switch(opt.protocol){
+        case PROTO1:
+            protocol1(client_fd);
+            break;
+        case PROTO2:
+            protocol2(client_fd);
+            break;
+        default:
+            help();
+            break;
+    }
 }
 
 void parse_option(char **argv){
@@ -127,66 +140,60 @@ int phase1(int fd){
     return ntohl(trans_id);
 }
 
-int phase2(int fd){
+void protocol1(int fd){
     char buf[DATASIZE];
     char data[DATASIZE];
-    int i = 0, len = 0, recv_len = 0, send_len = 0;
-    //printf("Input(max 1024 // EOF - ctrl-D) : ");
-    fflush(stdout);
+    int len;
+    int read_idx, write_idx;
+    bool escape, read_end;
+    while(1){
+        //read input
+        len = read(0, buf, DATASIZE/2);
+        if(len == 0) return;
 
-    len = read(0, buf, DATASIZE/2 - 1);
-    if(len == 0) return 0; 
-
-    //printf("\n");
-    fflush(stdout);
-
-
-
-    if(opt.protocol == 1){
-        //protocol 1 send part
-        while(i < len){
-            data[send_len++] = buf[i++];
-            if(data[send_len-1] == '\\') data[send_len++] = '\\';
+        //send data
+        read_idx = 0; write_idx = 0;
+        while(read_idx < len){
+            data[write_idx++] = buf[read_idx++];
+            if(data[write_idx-1] == '\\') data[write_idx++] = '\\';
         }
+        send(fd, data, write_idx, 0);
+        send(fd, "\\0", 2, 0);
 
-        data[send_len] = '\\';
-        data[send_len+1] = '0';
-        send(fd, data, send_len+2, 0);
-
-        //protocol 1 recv part
-        len = 0;
-        i = 0;
-        bool read_end = false;
-        bool slash_check = false;
+        //recv data
+        escape = false; read_end = false;
         while(!read_end){
-            recv_len += recv(fd, buf + recv_len, DATASIZE/2, 0);
-            while(i < recv_len && !read_end){
-                if(slash_check && buf[i] == '0')read_end = true;
-                else if(slash_check && buf[i] == '\\'){
-                    slash_check = false;
-                    data[len++] = '\\';
-                }else if(buf[i] == '\\') slash_check = true;
-                else data[len++] = buf[i];
-                i++;
+            len = recv(fd, buf, DATASIZE, 0);
+            read_idx = 0; write_idx = 0;
+            while(read_idx < len && !read_end){
+                if(escape && buf[read_idx] == '0') read_end = true;
+                else if (escape && buf[read_idx] == '\\') escape = false;
+                else if (buf[read_idx] == '\\') escape = true;
+                if(!escape && !read_end) data[write_idx++] = buf[read_idx];
+                read_idx++;
             }
+            write(1, data, write_idx); 
         }
     }
-    else{
-        //protocol 2 send part
-        send_len = htonl(len);
-        send(fd, &send_len, 4, 0);
-        send(fd, buf, len, 0); 
-
-        //protocol2 recv part
-        recv(fd, &recv_len, 4, 0);
-        recv_len = ntohl(recv_len);
-        len = 0;
-        while(len != recv_len)
-            len += recv(fd, data+len, recv_len - len, 0);
-    }
-    //printf("server data : "); 
-    //fflush(stdout);
-    write(1, data, len);
-    //printf("\n");
-    return 1;
 }
+
+void protocol2(int fd){
+    char buf[DATASIZE];
+    int n_len, len, recv_len;
+    while(1){
+        len = read(0, buf, DATASIZE/2);
+        if(len == 0) return;
+        n_len = htonl(len);
+        send(fd, &n_len, 4, 0);
+        send(fd, buf, len, 0);
+
+        recv(fd, &n_len, 4, 0);
+        len = ntohl(n_len);
+        recv_len = 0;
+        while(recv_len < len){
+            recv_len += recv(fd, buf, len-recv_len, 0);
+            write(1, buf, recv_len);      
+        }
+    }
+}
+
