@@ -20,6 +20,10 @@ struct client{
     int trans_id;
     char write_char;
     bool escape;
+
+    char *buf;
+    int buf_len;
+    int read_len;
 };
 
 int phase1_send(int client_fd);
@@ -27,7 +31,10 @@ int phase1_recv(int client_fd, int trans_id);
 int parse_option(char **argv);
 void help();
 int protocol1(int client_fd, struct client * cli);
-int protocol2(int client_fd);
+int protocol2_len(int client_fd, struct client *cli);
+int protocol2_recv(int client_fd, struct client *cli);
+int protocol2_send(int client_fd, struct client *cli);
+int protocol2(int client_fd, struct client * cli);
 
 
 int main(int argc, char **argv){
@@ -116,7 +123,18 @@ int main(int argc, char **argv){
                         break;
 
                     case 220:
+                        if((cli[client_fd].phase = protocol2_len(client_fd, &cli[client_fd])) == -1){
+                            printf("client end\n");
+                            close(client_fd);
+                            FD_CLR(client_fd, &readfds);
+                        }
+                        break;
                     case 221:
+                        if((cli[client_fd].phase = protocol2_recv(client_fd, &cli[client_fd])) == -1){
+                            printf("client end\n");
+                            close(client_fd);
+                            FD_CLR(client_fd, &readfds);
+                        }
                         break;
                     default:
                         break;
@@ -233,8 +251,34 @@ int protocol1(int fd, struct client *cli){
     return 211;
 }
 
+int protocol2_len (int client_fd, struct client *cli){
+    int len;
+    if(recv(client_fd, &len, 4, 0) != 4) return 0;
+    len = ntohl(len);
+    cli->buf_len = len;
+    cli->buf = malloc(len);
+    cli->read_len = 0;
+    return 221;
+}
 
-int protocol2(int fd){
+int protocol2_recv(int fd, struct client *cli){
+    int check;
+    if((check = recv(fd, cli->buf + cli->read_len, cli->buf_len - cli->read_len, 0)) == 0){
+        free(cli->buf);
+        return -1;
+    }
+    cli->read_len += check;
+    if(cli->read_len == cli->buf_len) return 222;
+    return 221;
+}
+
+int protocol2_send(int fd, struct client *cli){
+}
+
+
+    
+
+int protocol2(int fd, struct client *cli){
     char *buf;
     int read_idx, write_idx;
     int len, recv_len, send_len;
