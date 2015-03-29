@@ -70,7 +70,6 @@ int main(int argc, char **argv){
 
     while(1){
         allfds = readfds;
-        printf("Select Wait %d\n", max_fd);
         fd_num = select(max_fd+1, &allfds, (fd_set *)0, (fd_set *)0, NULL);
         if(FD_ISSET(server_fd, &allfds)){
             //ACCEPT the Client
@@ -101,8 +100,10 @@ int main(int argc, char **argv){
                         if((cli[client_fd].phase = phase1_recv(client_fd, cli[client_fd].trans_id)) == -1){
                             printf("client error, close the socket\n");
                             close(client_fd);
+                            FD_CLR(client_fd, &readfds);
                             break;
                         }
+                        printf("%d client phase1 end next phase : %d\n", client_fd, cli[client_fd].phase);
                         break;
                     case 210:
                     case 211:
@@ -110,7 +111,12 @@ int main(int argc, char **argv){
                         if((cli[client_fd].phase = protocol1(client_fd, &cli[client_fd])) == -1){
                             printf("client end\n");
                             close(client_fd);
+                            FD_CLR(client_fd, &readfds);
                         }
+                        break;
+
+                    case 220:
+                    case 221:
                         break;
                     default:
                         break;
@@ -218,12 +224,12 @@ int protocol1(int fd, struct client *cli){
 
     send(fd, buf, write_idx, 0);
 
+    cli->escape = escape;
     if(read_end){
         send(fd, "\\0", 2, 0);
-        return 210;
+        cli->escape = false;
     }
     cli->write_char = write_char;
-    cli->escape = escape;
     return 211;
 }
 
