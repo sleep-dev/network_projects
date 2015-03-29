@@ -159,7 +159,7 @@ int phase2(int fd){
         bool read_end = false;
         bool slash_check = false;
         while(!read_end){
-            recv_len += recv(fd, buf + recv_len, DATASIZE, 0);
+            recv_len += recv(fd, buf + recv_len, DATASIZE/2, 0);
             while(i < recv_len && !read_end){
                 if(slash_check && buf[i] == '0')read_end = true;
                 else if(slash_check && buf[i] == '\\'){
@@ -185,6 +185,8 @@ int phase2(int fd){
             len += recv(fd, data+len, recv_len - len, 0);
     }
     //printf("server data : "); 
+    //fflush(stdout);
     write(1, data, len);
+    //printf("\n");
     return 1;
 }
