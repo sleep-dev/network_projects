@@ -16,6 +16,8 @@
 
 void client_main(int client_fd);
 int phase1(int client_fd);
+int parse_option(char **argv);
+void help();
 void protocol1(int client_fd);
 void protocol2(int client_fd);
 
@@ -25,13 +27,14 @@ int main(int argc, char **argv){
 
     struct sockaddr_in server_addr, client_addr;
 
+    portno = parse_option(argv);
+
     server_fd = socket(PF_INET, SOCK_STREAM, 0);
     if(server_fd < 0){
         perror("ERROR opening socket");
         exit(-1);
     }
 
-    portno = 10341;
 
     memset(&server_addr, 0, sizeof(server_addr));   
     server_addr.sin_family = AF_INET;
@@ -66,6 +69,30 @@ int main(int argc, char **argv){
             break;
         }
     }
+}
+
+int parse_option(char **argv){
+    argv++;
+    int option_count = 0;
+    int port = 0;
+    while(*argv != NULL){
+        if(!strcmp(*argv, "-p")){
+            if(!++argv) help();
+            port = atoi(*argv);
+            if(!port) help();
+        }
+        else help();
+        argv++;
+        option_count++;
+    }
+    if(option_count != 1) help();
+    
+    return port;
+}
+
+void help(){
+    printf("help-function\n");
+    exit(-1);
 }
 
 void client_main(int client_fd){
@@ -126,17 +153,14 @@ void protocol1(int fd){
     int write_sum = 0;
     
     while(1){
-        read_end = false;
+        read_end = false; escape = false;
         while(!read_end){
             read_idx = 0; write_idx = 0;
             recv_len = recv(fd, buf, DATASIZE, 0);
             if(!recv_len) return;
 
             while(read_idx < recv_len && !read_end){
-                if (escape && buf[read_idx] == '0'){
-                    read_end = true;
-                    escape = false;
-                }
+                if (escape && buf[read_idx] == '0') read_end = true;
                 else if (escape && buf[read_idx] == '\\') escape = false;
                 else if (buf[read_idx] == '\\') escape = true;
                 
